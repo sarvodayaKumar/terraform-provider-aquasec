@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAquasecresourceRegistry(t *testing.T) {
+func TestAquasecresourceRegistryTypeAny(t *testing.T) {
 	t.Parallel()
 	name := acctest.RandomWithPrefix("terraform-test")
 	url := "https://docker.io"
@@ -40,6 +40,38 @@ func TestAquasecresourceRegistry(t *testing.T) {
 	})
 }
 
+func TestAquasecresourceRegistryTypeSpecific(t *testing.T) {
+	t.Parallel()
+	name := acctest.RandomWithPrefix("terraform-test")
+	url := "https://docker.io"
+	rtype := "HUB"
+	username := ""
+	password := ""
+	autopull := false
+	scanner_type := "specific"
+	scanner_group_name := "terraform-test"
+	description := "Terrafrom-test"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: CheckDestroy("aquasec_integration_registry.new"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckAquasecRegistryTypeSpecific(name, url, rtype, username, password, autopull, scanner_type, description, scanner_group_name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAquasecRegistryExists("aquasec_integration_registry.new"),
+				),
+			},
+			{
+				ResourceName:            "aquasec_integration_registry.new",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"prefixes", "scanner_name", "last_updated"}, //TODO: implement read prefixes
+			},
+		},
+	})
+}
+
 func testAccCheckAquasecRegistry(name string, url string, rtype string, username string, password string, autopull bool, scanner_type string, description string) string {
 	return fmt.Sprintf(`
 	resource "aquasec_integration_registry" "new" {
@@ -52,6 +84,22 @@ func testAccCheckAquasecRegistry(name string, url string, rtype string, username
 		scanner_type = "%s"
 		description = "%s"
 	}`, name, url, rtype, username, password, autopull, scanner_type, description)
+
+}
+
+func testAccCheckAquasecRegistryTypeSpecific(name string, url string, rtype string, username string, password string, autopull bool, scanner_type string, description string, scanner_group_name string) string {
+	return fmt.Sprintf(`
+	resource "aquasec_integration_registry" "new" {
+		name = "%s"
+		url = "%s"
+		type = "%s"
+		username = "%s"
+		password = "%s"
+		auto_pull = "%v"
+		scanner_type = "%s"
+		description = "%s"
+		scanner_group_name = "%s"
+	}`, name, url, rtype, username, password, autopull, scanner_type, description, scanner_group_name)
 
 }
 
