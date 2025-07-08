@@ -8,6 +8,7 @@ import (
 
 	"github.com/aquasecurity/terraform-provider-aquasec/client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceRegistry() *schema.Resource {
@@ -123,10 +124,11 @@ func resourceRegistry() *schema.Resource {
 				Optional:    true,
 			},
 			"scanner_type": {
-				Type:        schema.TypeString,
-				Description: "The Scanner type",
-				Optional:    true,
-				Computed:    true,
+				Type:         schema.TypeString,
+				Description:  "The Scanner type (either \"any\" or \"specific\")",
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.StringInSlice([]string{"any", "specific"}, false),
 			},
 			"scanner_name": {
 				Type:        schema.TypeList,
@@ -135,6 +137,12 @@ func resourceRegistry() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"scanner_group_name": {
+				Type:        schema.TypeString,
+				Description: "The scanner group name (required when scanner_type = \"specific\" type)",
+				Optional:    true,
+				Computed:    true,
 			},
 			"options": {
 				Type:     schema.TypeList,
@@ -219,9 +227,17 @@ func resourceRegistry() *schema.Resource {
 
 func resourceRegistryCreate(d *schema.ResourceData, m interface{}) error {
 	ac := m.(*client.Client)
+	var scannerGroupName string
 	scannerType := d.Get("scanner_type").(string)
 	if scannerType == "" {
 		scannerType = "any"
+	}
+
+	if scannerType == "specific" {
+		scannerGroupName = d.Get("scanner_group_name").(string)
+		if len(scannerGroupName) == 0 {
+			return fmt.Errorf("scanner_group_name must be provided when scanner_type is \"specific\"")
+		}
 	}
 
 	autoPull := d.Get("auto_pull").(bool)
@@ -263,6 +279,7 @@ func resourceRegistryCreate(d *schema.ResourceData, m interface{}) error {
 		RegistryScanTimeout:        d.Get("registry_scan_timeout").(int),
 		AutoPullInterval:           autoPullInterval,
 		ScannerType:                scannerType,
+		ScannerGroupName:           scannerGroupName,
 		ScannerName:                convertStringArr(scanner_name),
 		ScannerNameAdded:           convertStringArr(scanner_name_added),
 		ScannerNameRemoved:         convertStringArr(scanner_name_removed),
@@ -411,7 +428,11 @@ func resourceRegistryRead(d *schema.ResourceData, m interface{}) error {
 	}
 	scannerType := d.Get("scanner_type").(string)
 	if scannerType == "specific" {
-		if err = d.Set("scanner_name", r.ScannerName); err != nil {
+		if err = d.Set("scanner_group_name", r.ScannerGroupName); err != nil {
+			return err
+		}
+	} else {
+		if err = d.Set("scanner_group_name", nil); err != nil {
 			return err
 		}
 	}
@@ -420,9 +441,16 @@ func resourceRegistryRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceRegistryUpdate(d *schema.ResourceData, m interface{}) error {
 	c := m.(*client.Client)
+	var scannerGroupName string
 	scannerType := d.Get("scanner_type").(string)
 	if scannerType == "" {
 		scannerType = "any"
+	}
+	if scannerType == "specific" {
+		scannerGroupName = d.Get("scanner_group_name").(string)
+		if len(scannerGroupName) == 0 {
+			return fmt.Errorf("scanner_group_name must be provided when scanner_type is \"specific\"")
+		}
 	}
 	autoPull := d.Get("auto_pull").(bool)
 	autoPullRescan := d.Get("auto_pull_rescan").(bool)
@@ -471,6 +499,7 @@ func resourceRegistryUpdate(d *schema.ResourceData, m interface{}) error {
 			PullImageCount:             d.Get("pull_image_count").(int),
 			RegistryScanTimeout:        d.Get("registry_scan_timeout").(int),
 			ScannerType:                scannerType,
+			ScannerGroupName:           scannerGroupName,
 			ScannerName:                convertStringArr(scanner_name),
 			ScannerNameAdded:           convertStringArr(scanner_name_added),
 			ScannerNameRemoved:         convertStringArr(scanner_name_removed),

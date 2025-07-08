@@ -3,10 +3,10 @@
 PROVIDER_DIR := $(abspath $(lastword $(dir $(MAKEFILE_LIST))))
 TEST         := "$(PROVIDER_DIR)/aquasec"
 HOSTNAME	 := github.com
-NAMESPACE	 := aquasec
+NAMESPACE	 := aquasecurity
 NAME 		 := aquasec
 BINARY		 := terraform-provider-${NAME}
-VERSION      := 0.8.39
+VERSION      := 0.8.40
 OS_ARCH      := $(shell go env GOOS)_$(shell go env GOARCH)
 
 default: build

@@ -35,7 +35,8 @@ type Registry struct {
 	PullImageAge               string    `json:"pull_image_age"`
 	PullImageCount             int       `json:"pull_image_count"`
 	PullImageTagPattern        []string  `json:"pull_image_tag_pattern"`
-	ScannerType                string    `json:"scanner_type"`
+	ScannerType                string    `json:"scanner_type,omitempty"`
+	ScannerGroupName           string    `json:"scanner_group_name,omitempty"`
 	ScannerName                []string  `json:"scanner_name,omitempty"`
 	ScannerNameAdded           []string  `json:"scanner_name_added,omitempty"`
 	ScannerNameRemoved         []string  `json:"scanner_name_removed,omitempty"`
